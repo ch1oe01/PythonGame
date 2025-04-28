@@ -136,8 +136,8 @@ def main():
 
         if game_state == MENU:
             title = font.render("射擊遊戲", True, (255, 0, 0))
-            start = font.render("按 [SPACE] 開始遊戲", True, (255, 255, 255))
-            quit_text = font.render("按 [ESC] 離開遊戲", True, (255, 255, 255))
+            start = font.render("[SPACE] Start", True, (255, 255, 255))
+            quit_text = font.render("[ESC] Exit", True, (255, 255, 255))
             screen.blit(title, (screenWidth//2 - title.get_width()//2, 200))
             screen.blit(start, (screenWidth//2 - start.get_width()//2, 300))
             screen.blit(quit_text, (screenWidth//2 - quit_text.get_width()//2, 400))
@@ -176,8 +176,8 @@ def main():
             seconds = (pygame.time.get_ticks() - start_ticks) / 1000
             remaining_time = max(0, game_duration - int(seconds))
 
-            countdown = font.render(f'剩餘時間: {remaining_time}', True, (255, 255, 255))
-            score_text = font.render(f'得分: {score}', True, (255, 255, 0))
+            countdown = font.render(f'Time: {remaining_time}', True, (255, 255, 255))
+            score_text = font.render(f'Score: {score}', True, (255, 255, 0))
             screen.blit(countdown, (10, 10))
             screen.blit(score_text, (10, 70))
 
@@ -190,9 +190,9 @@ def main():
 
         elif game_state == GAME_OVER:
             screen.fill((0, 0, 0))
-            over_text = font.render('Game over', True, (255, 0, 0))
-            restart_text = font.render('按 [R] 重新開始', True, (255, 255, 255))
-            best_score_text = font.render(f'最高分: {high_score}', True, (255, 255, 0))
+            over_text = font.render('Game Over', True, (255, 0, 0))
+            restart_text = font.render('[R]Reset', True, (255, 255, 255))
+            best_score_text = font.render(f'Score: {high_score}', True, (255, 255, 0))
 
             screen.blit(over_text, (screenWidth//2 - over_text.get_width()//2, 200))
             screen.blit(best_score_text, (screenWidth//2 - best_score_text.get_width()//2, 300))
