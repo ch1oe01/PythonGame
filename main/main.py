@@ -8,163 +8,196 @@ from gobject import GameObject
 
 def main():
     parent_path = Path(__file__).parents[1]
-    image_path = parent_path/'res'
-    icon_path = image_path/'airplaneicon.png'
+    image_path = parent_path / 'res'
+    icon_path = image_path / 'airplaneicon.png'
+    font_path = str(image_path / 'msjh.ttc')  # 中文字型
 
     pygame.init()
 
     screenHigh = 600
     screenWidth = 1200
-
     playground = [screenWidth, screenHigh]
+
     screen = pygame.display.set_mode((screenWidth, screenHigh))
     pygame.display.set_caption("射擊遊戲")
     icon = pygame.image.load(icon_path)
     pygame.display.set_icon(icon)
+
     background = pygame.Surface(screen.get_size())
     background = background.convert()
     background.fill((50, 50, 50))
 
-    # 設置倒計時
-    game_duration = 30  # 遊戲時間30秒
-    start_ticks = pygame.time.get_ticks()  # 記錄遊戲開始的時間
+    game_duration = 30  # 秒
+    font = pygame.font.Font(font_path, 40)  # 使用中文字型
 
-    # 設置字體
-    font = pygame.font.SysFont(None, 55)
-
-    running = True
-    game_over = False
     fps = 120
     clock = pygame.time.Clock()
-    movingScale = 600/fps
-    player = Player(playground=playground, sensitivity=movingScale)
+    movingScale = 600 / fps
 
+    player = Player(playground=playground, sensitivity=movingScale)
     keyCountX = 0
     keyCountY = 0
-
     Missiles = []
     Enemies = []
     Boom = []
 
     launchMissile = pygame.USEREVENT + 1
     createEnemy = pygame.USEREVENT + 2
-    explosion = pygame.USEREVENT + 3
-    # 建立敵人，每秒一台
     pygame.time.set_timer(createEnemy, 1000)
 
+    score = 0
+    high_score = 0
+    start_ticks = None
+
+    MENU = "menu"
+    PLAYING = "playing"
+    GAME_OVER = "game_over"
+    game_state = MENU
+
+    running = True
+
     while running:
+        dt = clock.tick(fps)
+        screen.fill((0, 0, 0))
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_a:
-                    keyCountX += 1
-                    player.to_the_left()
-                if event.key == pygame.K_d:
-                    keyCountX += 1
-                    player.to_the_right()
-                if event.key == pygame.K_s:
-                    keyCountY += 1
-                    player.to_the_bottom()
-                if event.key == pygame.K_w:
-                    keyCountY += 1
-                    player.to_the_top()
-                if event.key == pygame.K_SPACE:
-                    m_x = player._x + 20  # 第一個飛彈
+
+            if game_state == MENU:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        game_state = PLAYING
+                        start_ticks = pygame.time.get_ticks()
+                        Missiles.clear()
+                        Enemies.clear()
+                        Boom.clear()
+                        score = 0
+                        player = Player(playground=playground, sensitivity=movingScale)
+                        keyCountX = 0
+                        keyCountY = 0
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+
+            elif game_state == PLAYING:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_a:
+                        keyCountX += 1
+                        player.to_the_left()
+                    if event.key == pygame.K_d:
+                        keyCountX += 1
+                        player.to_the_right()
+                    if event.key == pygame.K_s:
+                        keyCountY += 1
+                        player.to_the_bottom()
+                    if event.key == pygame.K_w:
+                        keyCountY += 1
+                        player.to_the_top()
+                    if event.key == pygame.K_SPACE:
+                        m_x = player._x + 20
+                        m_y = player._y
+                        Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
+                        m_x = player._x + 80
+                        Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
+                        pygame.time.set_timer(launchMissile, 400)
+
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_a or event.key == pygame.K_d:
+                        if keyCountX == 1:
+                            keyCountX = 0
+                            player.stop_x()
+                        else:
+                            keyCountX -= 1
+                    if event.key == pygame.K_s or event.key == pygame.K_w:
+                        if keyCountY == 1:
+                            keyCountY = 0
+                            player.stop_y()
+                        else:
+                            keyCountY -= 1
+                    if event.key == pygame.K_SPACE:
+                        pygame.time.set_timer(launchMissile, 0)
+
+                if event.type == launchMissile:
+                    m_x = player._x + 20
                     m_y = player._y
                     Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
-                    m_x = player._x + 80   # 第二個飛彈
-                    Missiles.append(MyMissile(playground, (m_x, m_y), movingScale))
-                    pygame.time.set_timer(launchMissile, 400)  # 每400ms發射一組
+                    m_x = player._x + 80
+                    Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
 
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_a or event.key == pygame.K_d:
-                    if keyCountX == 1:
-                        keyCountX = 0
-                        player.stop_x()
-                    else:
-                        keyCountX -= 1
-                if event.key == pygame.K_s or event.key == pygame.K_w:
-                    if keyCountY == 1:
-                        keyCountY = 0
-                        player.stop_y()
-                    else:
-                        keyCountY -= 1
-                if event.key == pygame.K_SPACE:
-                    pygame.time.set_timer(launchMissile, 0)
+                if event.type == createEnemy:
+                    Enemies.append(Enemy(playground=playground, sensitivity=movingScale))
 
-            if event.type == launchMissile:
-                m_x = player._x + 20
-                m_y = player._y
-                Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
-                m_x = player._x + 80
-                Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
+            elif game_state == GAME_OVER:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_r:
+                        game_state = MENU
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
 
-            if event.type == createEnemy:
-                Enemies.append(Enemy(playground=playground, sensitivity=movingScale))
+        if game_state == MENU:
+            title = font.render("射擊遊戲", True, (255, 0, 0))
+            start = font.render("按 [SPACE] 開始遊戲", True, (255, 255, 255))
+            quit_text = font.render("按 [ESC] 離開遊戲", True, (255, 255, 255))
+            screen.blit(title, (screenWidth//2 - title.get_width()//2, 200))
+            screen.blit(start, (screenWidth//2 - start.get_width()//2, 300))
+            screen.blit(quit_text, (screenWidth//2 - quit_text.get_width()//2, 400))
+            pygame.display.update()
 
-        if not game_over:
+        elif game_state == PLAYING:
             screen.blit(background, (0, 0))
 
-            # 偵測碰撞
             player.collision_detect(Enemies)
-
             for m in Missiles:
                 m.collision_detect(Enemies)
 
             for e in Enemies:
                 if e.collided:
                     Boom.append(Explosion(e.center))
+                    score += 10  # 擊落加分
 
-            # 貼圖 (missile -> enemy -> player -> boom)
-            Missiles = [item for item in Missiles if item.available]
+            Missiles = [m for m in Missiles if m.available]
             for m in Missiles:
                 m.update()
                 screen.blit(m.image, m.xy)
 
-            Enemies = [item for item in Enemies if item.available]
+            Enemies = [e for e in Enemies if e.available]
             for e in Enemies:
                 e.update()
                 screen.blit(e.image, e.xy)
 
-            player.update()
-            screen.blit(player.image, player.xy)
-
-            Boom = [item for item in Boom if item.available]
+            Boom = [b for b in Boom if b.available]
             for b in Boom:
                 b.update()
                 screen.blit(b.image, b.xy)
 
-            # 計算剩餘時間
-            seconds = (pygame.time.get_ticks() - start_ticks) / 1000  # 計算遊戲經過的時間
-            remaining_time = max(0, game_duration - int(seconds))  # 計算剩餘時間
+            player.update()
+            screen.blit(player.image, player.xy)
 
-            # 顯示倒計時
-            countdown_text = font.render(f'Time: {remaining_time}', True, (255, 255, 255))
-            screen.blit(countdown_text, (10, 10))
+            seconds = (pygame.time.get_ticks() - start_ticks) / 1000
+            remaining_time = max(0, game_duration - int(seconds))
+
+            countdown = font.render(f'剩餘時間: {remaining_time}', True, (255, 255, 255))
+            score_text = font.render(f'得分: {score}', True, (255, 255, 0))
+            screen.blit(countdown, (10, 10))
+            screen.blit(score_text, (10, 70))
 
             pygame.display.update()
-            dt = clock.tick(fps)
 
             if remaining_time == 0:
-                game_over = True
-        else:
-            # 顯示遊戲結束畫面
+                if score > high_score:
+                    high_score = score
+                game_state = GAME_OVER
+
+        elif game_state == GAME_OVER:
             screen.fill((0, 0, 0))
-            game_over_text = font.render('Game Over', True, (255, 0, 0))
-            screen.blit(game_over_text, (screenWidth // 2 - game_over_text.get_width() // 2, screenHigh // 2 - 100))
-            restart_text = font.render('Press R to Restart', True, (255, 255, 255))
-            screen.blit(restart_text, (screenWidth // 2 - restart_text.get_width() // 2, screenHigh // 2))
+            over_text = font.render('Game over', True, (255, 0, 0))
+            restart_text = font.render('按 [R] 重新開始', True, (255, 255, 255))
+            best_score_text = font.render(f'最高分: {high_score}', True, (255, 255, 0))
 
+            screen.blit(over_text, (screenWidth//2 - over_text.get_width()//2, 200))
+            screen.blit(best_score_text, (screenWidth//2 - best_score_text.get_width()//2, 300))
+            screen.blit(restart_text, (screenWidth//2 - restart_text.get_width()//2, 400))
             pygame.display.update()
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_r:
-                        main()  # 重新開始遊戲
-                        return
 
     pygame.quit()
 
