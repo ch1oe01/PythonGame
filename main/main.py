@@ -10,13 +10,15 @@ def main():
     parent_path = Path(__file__).parents[1]
     image_path = parent_path / 'res'
     icon_path = image_path / 'airplaneicon.png'
-    font_path = str(image_path / 'msjh.ttc')  # 中文字型
+    font_path  = str(image_path / 'msjh.ttc')  # 中文字型
 
     pygame.init()
+    pygame.mixer.init()
 
     screenHigh = 600
     screenWidth = 1200
     playground = [screenWidth, screenHigh]
+    explosion_sound = pygame.mixer.Sound(str(image_path / 'explosion.mp3'))
 
     screen = pygame.display.set_mode((screenWidth, screenHigh))
     pygame.display.set_caption("射擊遊戲")
@@ -32,7 +34,7 @@ def main():
 
     fps = 120
     clock = pygame.time.Clock()
-    movingScale = 600 / fps
+    movingScale = 1000 / fps
 
     player = Player(playground=playground, sensitivity=movingScale)
     keyCountX = 0
@@ -154,6 +156,7 @@ def main():
                 if e.collided:
                     Boom.append(Explosion(e.center))
                     score += 10  # 擊落加分
+                    explosion_sound.play()
 
             Missiles = [m for m in Missiles if m.available]
             for m in Missiles:
