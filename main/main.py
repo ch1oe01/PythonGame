@@ -96,10 +96,10 @@ def main():
                         keyCountY += 1
                         player.to_the_top()
                     if event.key == pygame.K_SPACE:
-                        m_x = player._x + 20
+                        m_x = player._x + 40
                         m_y = player._y
                         Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
-                        m_x = player._x + 80
+                        m_x = player._x + 100
                         Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
                         pygame.time.set_timer(launchMissile, 400)
 
@@ -120,10 +120,10 @@ def main():
                         pygame.time.set_timer(launchMissile, 0)
 
                 if event.type == launchMissile:
-                    m_x = player._x + 20
+                    m_x = player._x + 40
                     m_y = player._y
                     Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
-                    m_x = player._x + 80
+                    m_x = player._x + 100
                     Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
 
                 if event.type == createEnemy:

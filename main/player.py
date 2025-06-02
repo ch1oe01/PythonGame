@@ -8,16 +8,16 @@ import math
 class Player(GameObject):
     def __init__(self, playground, xy=None, sensitivity=1):
         GameObject.__init__(self, playground)
-        self._moveScale = 0.5 * sensitivity
+        self._moveScale = 0.8 * sensitivity
         __parent_path = Path(__file__).parents[1]
-        self.__player_path = __parent_path / 'res' / 'airplaneicon-removebg-preview.png'
+        self.__player_path = __parent_path / 'res' / 'airplane.png'
 
         # 載入圖片
         self._image = pygame.image.load(self.__player_path)
 
         # 縮小圖片
         original_size = self._image.get_size()
-        scale_factor = 0.5  # 設定縮小比例
+        scale_factor = 0.2  # 縮小比例
         new_size = (int(original_size[0] * scale_factor), int(original_size[1] * scale_factor))
         self._image = pygame.transform.scale(self._image, new_size)
 
