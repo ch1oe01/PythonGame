@@ -1,6 +1,5 @@
 import math
 
-
 class GameObject:
     def __init__(self, playground=None):
         if playground is None:
@@ -18,7 +17,7 @@ class GameObject:
         self._image = None
         self._available = True
         self._center = None
-        self._radius = None
+        self._radius = 0  # ✅ 設成 0，避免 None 計算錯誤
         self._collided = False
 
     @property
@@ -32,7 +31,7 @@ class GameObject:
     @image.setter
     def image(self, value):
         self._image = value
- 
+
     @property
     def available(self):
         return self._available
@@ -113,9 +112,18 @@ class GameObject:
         if self._y < self._objectBound[2]:
             self._y = self._objectBound[2]
 
+        # ✅ 更新中心座標
+        if self._image:
+            self._center = (
+                self._x + self._image.get_rect().w / 2,
+                self._y + self._image.get_rect().h / 2
+            )
+
     def _collided_(self, it):
-        distance = math.hypot(self._center[0]-it.center[0], self._center[1]-it.center[1])
-        if distance < self._radius + it.radius:
-            return True
-        else:
+        if self._center is None or it.center is None:
+            return False  # ✅ 防止 NoneType 觸發錯誤
+        if self._radius is None or it.radius is None:
             return False
+
+        distance = math.hypot(self._center[0] - it.center[0], self._center[1] - it.center[1])
+        return distance < (self._radius + it.radius)

@@ -10,12 +10,13 @@ def main():
     parent_path = Path(__file__).parents[1]
     image_path = parent_path / 'res'
     icon_path = image_path / 'airplaneicon.png'
-    font_path  = str(image_path / 'msjh.ttc')  # 中文字型
+    font_path = str(image_path / 'msjh.ttc')
+    bg_path = image_path / 'background.png'  # ✅ 背景圖路徑
 
     pygame.init()
     pygame.mixer.init()
 
-    screenHigh = 600
+    screenHigh = 800
     screenWidth = 1200
     playground = [screenWidth, screenHigh]
     explosion_sound = pygame.mixer.Sound(str(image_path / 'explosion.mp3'))
@@ -25,12 +26,12 @@ def main():
     icon = pygame.image.load(icon_path)
     pygame.display.set_icon(icon)
 
-    background = pygame.Surface(screen.get_size())
-    background = background.convert()
-    background.fill((50, 50, 50))
+    # ✅ 載入背景圖並自動縮放
+    background = pygame.image.load(bg_path).convert()
+    background = pygame.transform.scale(background, (screenWidth, screenHigh))
 
-    game_duration = 30  # 秒
-    font = pygame.font.Font(font_path, 40)  # 使用中文字型
+    game_duration = 30
+    font = pygame.font.Font(font_path, 40)
 
     fps = 120
     clock = pygame.time.Clock()
@@ -104,13 +105,13 @@ def main():
                         pygame.time.set_timer(launchMissile, 400)
 
                 if event.type == pygame.KEYUP:
-                    if event.key == pygame.K_a or event.key == pygame.K_d:
+                    if event.key in [pygame.K_a, pygame.K_d]:
                         if keyCountX == 1:
                             keyCountX = 0
                             player.stop_x()
                         else:
                             keyCountX -= 1
-                    if event.key == pygame.K_s or event.key == pygame.K_w:
+                    if event.key in [pygame.K_s, pygame.K_w]:
                         if keyCountY == 1:
                             keyCountY = 0
                             player.stop_y()
@@ -146,7 +147,7 @@ def main():
             pygame.display.update()
 
         elif game_state == PLAYING:
-            screen.blit(background, (0, 0))
+            screen.blit(background, (0, 0))  # ✅ 畫出背景圖
 
             player.collision_detect(Enemies)
             for m in Missiles:
@@ -155,7 +156,7 @@ def main():
             for e in Enemies:
                 if e.collided:
                     Boom.append(Explosion(e.center))
-                    score += 10  # 擊落加分
+                    score += 10
                     explosion_sound.play()
 
             Missiles = [m for m in Missiles if m.available]

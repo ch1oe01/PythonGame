@@ -1,29 +1,25 @@
 from gobject import GameObject
 from pathlib import Path
-from typing import Union
-from pygame.surface import Surface, SurfaceType
 import pygame
 import math
 
 class Player(GameObject):
     def __init__(self, playground, xy=None, sensitivity=1):
-        GameObject.__init__(self, playground)
+        super().__init__(playground)
         self._moveScale = 0.8 * sensitivity
         __parent_path = Path(__file__).parents[1]
         self.__player_path = __parent_path / 'res' / 'airplane.png'
 
-        # 載入圖片
-        self._image = pygame.image.load(self.__player_path)
-
-        # 縮小圖片
-        original_size = self._image.get_size()
-        scale_factor = 0.2  # 縮小比例
-        new_size = (int(original_size[0] * scale_factor), int(original_size[1] * scale_factor))
-        self._image = pygame.transform.scale(self._image, new_size)
+        # ✅ 載入原始圖片，不進行縮放
+        self._image = pygame.image.load(self.__player_path).convert_alpha()
+        self.image = self._image  # 設定給基礎類用
 
         self._x = 0
         self._y = 0
-        self._center = self._x + self._image.get_rect().w / 2, self._y + self._image.get_rect().h / 2
+        self._center = (
+            self._x + self._image.get_rect().w / 2,
+            self._y + self._image.get_rect().h / 2
+        )
         self._radius = 0.3 * math.hypot(self._image.get_rect().w, self._image.get_rect().h)
         self._changeX = 0
         self._changeY = 0
@@ -74,7 +70,10 @@ class Player(GameObject):
         if self._y < self._objectBound[2]:
             self._y = self._objectBound[2]
 
-        self._center = self._x + self._image.get_rect().w / 2, self._y + self._image.get_rect().h / 2
+        self._center = (
+            self._x + self._image.get_rect().w / 2,
+            self._y + self._image.get_rect().h / 2
+        )
 
     def collision_detect(self, enemies):
         for m in enemies:
