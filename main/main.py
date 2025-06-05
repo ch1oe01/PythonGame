@@ -11,7 +11,8 @@ def main():
     image_path = parent_path / 'res'
     icon_path = image_path / 'airplaneicon.png'
     font_path = str(image_path / 'msjh.ttc')
-    bg_path = image_path / 'background.png'  # ✅ 背景圖路徑
+    bg_path = image_path / 'background.png'
+    cover_path = image_path / 'cover_image.png'
 
     pygame.init()
     pygame.mixer.init()
@@ -26,13 +27,16 @@ def main():
     icon = pygame.image.load(icon_path)
     pygame.display.set_icon(icon)
 
-    # ✅ 載入背景圖並自動縮放
     background = pygame.image.load(bg_path).convert()
     background = pygame.transform.scale(background, (screenWidth, screenHigh))
 
-    game_duration = 30
-    font = pygame.font.Font(font_path, 40)
+    cover_bg = pygame.image.load(cover_path).convert()
+    cover_bg = pygame.transform.scale(cover_bg, (screenWidth, screenHigh))
 
+    font = pygame.font.Font(font_path, 40)
+    title_font = pygame.font.SysFont("Microsoft JhengHei", 80, bold=True)
+
+    game_duration = 30
     fps = 120
     clock = pygame.time.Clock()
     movingScale = 1000 / fps
@@ -54,6 +58,7 @@ def main():
 
     MENU = "menu"
     PLAYING = "playing"
+    PAUSED = "paused"
     GAME_OVER = "game_over"
     game_state = MENU
 
@@ -96,6 +101,8 @@ def main():
                     if event.key == pygame.K_w:
                         keyCountY += 1
                         player.to_the_top()
+                    if event.key == pygame.K_p:
+                        game_state = PAUSED
                     if event.key == pygame.K_SPACE:
                         m_x = player._x + 40
                         m_y = player._y
@@ -130,6 +137,13 @@ def main():
                 if event.type == createEnemy:
                     Enemies.append(Enemy(playground=playground, sensitivity=movingScale))
 
+            elif game_state == PAUSED:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_p:
+                        game_state = PLAYING
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+
             elif game_state == GAME_OVER:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_r:
@@ -138,16 +152,33 @@ def main():
                         running = False
 
         if game_state == MENU:
-            title = font.render("射擊遊戲", True, (255, 0, 0))
-            start = font.render("[SPACE] Start", True, (255, 255, 255))
-            quit_text = font.render("[ESC] Exit", True, (255, 255, 255))
-            screen.blit(title, (screenWidth//2 - title.get_width()//2, 200))
-            screen.blit(start, (screenWidth//2 - start.get_width()//2, 300))
-            screen.blit(quit_text, (screenWidth//2 - quit_text.get_width()//2, 400))
+            screen.blit(cover_bg, (0, 0))
+
+            title_text = "射擊遊戲"
+            base_x = screenWidth // 2
+            base_y = screenHigh // 2 - 100
+
+            for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
+                outline = title_font.render(title_text, True, (255, 255, 255))
+                rect = outline.get_rect(center=(base_x + dx, base_y + dy))
+                screen.blit(outline, rect)
+
+            main_title = title_font.render(title_text, True, (0, 0, 0))
+            main_rect = main_title.get_rect(center=(base_x, base_y))
+            screen.blit(main_title, main_rect)
+
+            start_surface = font.render("[SPACE] Start", True, (255, 255, 255))
+            start_rect = start_surface.get_rect(center=(screenWidth // 2, screenHigh // 2))
+            screen.blit(start_surface, start_rect)
+
+            quit_surface = font.render("[ESC] Exit", True, (255, 255, 255))
+            quit_rect = quit_surface.get_rect(center=(screenWidth // 2, screenHigh // 2 + 80))
+            screen.blit(quit_surface, quit_rect)
+
             pygame.display.update()
 
         elif game_state == PLAYING:
-            screen.blit(background, (0, 0))  # ✅ 畫出背景圖
+            screen.blit(background, (0, 0))
 
             player.collision_detect(Enemies)
             for m in Missiles:
@@ -191,6 +222,13 @@ def main():
                 if score > high_score:
                     high_score = score
                 game_state = GAME_OVER
+
+        elif game_state == PAUSED:
+            pause_text = font.render("遊戲暫停", True, (255, 255, 0))
+            continue_text = font.render("[P] 繼續遊戲", True, (255, 255, 255))
+            screen.blit(pause_text, (screenWidth // 2 - pause_text.get_width() // 2, screenHigh // 2 - 40))
+            screen.blit(continue_text, (screenWidth // 2 - continue_text.get_width() // 2, screenHigh // 2 + 20))
+            pygame.display.update()
 
         elif game_state == GAME_OVER:
             screen.fill((0, 0, 0))
