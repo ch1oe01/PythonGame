@@ -1,9 +1,11 @@
 import pygame
+import random
 from pathlib import Path
 from player import Player
 from missle import MyMissile
 from enemy import Enemy
 from explosion import Explosion
+from enemy_bullet import EnemyBullet  # 加入敵人子彈
 from gobject import GameObject
 
 def main():
@@ -42,11 +44,13 @@ def main():
     movingScale = 1000 / fps
 
     player = Player(playground=playground, sensitivity=movingScale)
+    player._hp = 100  # 初始血量
     keyCountX = 0
     keyCountY = 0
     Missiles = []
     Enemies = []
     Boom = []
+    EnemyBullets = []
 
     launchMissile = pygame.USEREVENT + 1
     createEnemy = pygame.USEREVENT + 2
@@ -80,8 +84,10 @@ def main():
                         Missiles.clear()
                         Enemies.clear()
                         Boom.clear()
+                        EnemyBullets.clear()
                         score = 0
                         player = Player(playground=playground, sensitivity=movingScale)
+                        player._hp = 100
                         keyCountX = 0
                         keyCountY = 0
                     if event.key == pygame.K_ESCAPE:
@@ -135,7 +141,10 @@ def main():
                     Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
 
                 if event.type == createEnemy:
-                    Enemies.append(Enemy(playground=playground, sensitivity=movingScale))
+                    e = Enemy(playground=playground, sensitivity=movingScale)
+                    Enemies.append(e)
+                    if random.random() < 0.5:
+                        EnemyBullets.append(e.fire())
 
             elif game_state == PAUSED:
                 if event.type == pygame.KEYDOWN:
@@ -153,7 +162,6 @@ def main():
 
         if game_state == MENU:
             screen.blit(cover_bg, (0, 0))
-
             title_text = "射擊遊戲"
             base_x = screenWidth // 2
             base_y = screenHigh // 2 - 100
@@ -167,18 +175,24 @@ def main():
             main_rect = main_title.get_rect(center=(base_x, base_y))
             screen.blit(main_title, main_rect)
 
-            start_surface = font.render("[SPACE] Start", True, (255, 255, 255))
-            start_rect = start_surface.get_rect(center=(screenWidth // 2, screenHigh // 2))
-            screen.blit(start_surface, start_rect)
-
-            quit_surface = font.render("[ESC] Exit", True, (255, 255, 255))
-            quit_rect = quit_surface.get_rect(center=(screenWidth // 2, screenHigh // 2 + 80))
-            screen.blit(quit_surface, quit_rect)
-
+            screen.blit(font.render("[SPACE] Start", True, (255, 255, 255)), (base_x - 100, base_y + 80))
+            screen.blit(font.render("[ESC] Exit", True, (255, 255, 255)), (base_x - 100, base_y + 140))
             pygame.display.update()
 
         elif game_state == PLAYING:
             screen.blit(background, (0, 0))
+
+            # 碰撞處理
+            for e in Enemies:
+                if player._collided_(e):
+                    e.available = False
+                    Boom.append(Explosion(e.center))
+                    player._hp -= 10
+
+            for b in EnemyBullets:
+                if player._collided_(b):
+                    b.available = False
+                    player._hp -= 10
 
             player.collision_detect(Enemies)
             for m in Missiles:
@@ -200,6 +214,11 @@ def main():
                 e.update()
                 screen.blit(e.image, e.xy)
 
+            EnemyBullets = [b for b in EnemyBullets if b.available]
+            for b in EnemyBullets:
+                b.update()
+                screen.blit(b.image, b.xy)
+
             Boom = [b for b in Boom if b.available]
             for b in Boom:
                 b.update()
@@ -208,37 +227,38 @@ def main():
             player.update()
             screen.blit(player.image, player.xy)
 
+            # 血條
+            max_bar_width = 200
+            bar_x, bar_y = 10, 10
+            pygame.draw.rect(screen, (255, 0, 0), (bar_x, bar_y, max_bar_width, 25))
+            current_bar_width = max(0, player._hp / 100 * max_bar_width)
+            pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, current_bar_width, 25))
+
             seconds = (pygame.time.get_ticks() - start_ticks) / 1000
             remaining_time = max(0, game_duration - int(seconds))
-
             countdown = font.render(f'Time: {remaining_time}', True, (255, 255, 255))
             score_text = font.render(f'Score: {score}', True, (255, 255, 0))
-            screen.blit(countdown, (10, 10))
-            screen.blit(score_text, (10, 70))
+            screen.blit(countdown, (10, 45))
+            screen.blit(score_text, (10, 80))
 
             pygame.display.update()
 
-            if remaining_time == 0:
-                if score > high_score:
-                    high_score = score
+            if player._hp <= 0:
+                high_score = max(high_score, score)
                 game_state = GAME_OVER
 
         elif game_state == PAUSED:
             pause_text = font.render("遊戲暫停", True, (255, 255, 0))
             continue_text = font.render("[P] 繼續遊戲", True, (255, 255, 255))
-            screen.blit(pause_text, (screenWidth // 2 - pause_text.get_width() // 2, screenHigh // 2 - 40))
-            screen.blit(continue_text, (screenWidth // 2 - continue_text.get_width() // 2, screenHigh // 2 + 20))
+            screen.blit(pause_text, (screenWidth // 2 - 80, screenHigh // 2 - 40))
+            screen.blit(continue_text, (screenWidth // 2 - 100, screenHigh // 2 + 20))
             pygame.display.update()
 
         elif game_state == GAME_OVER:
             screen.fill((0, 0, 0))
-            over_text = font.render('Game Over', True, (255, 0, 0))
-            restart_text = font.render('[R]Reset', True, (255, 255, 255))
-            best_score_text = font.render(f'Score: {high_score}', True, (255, 255, 0))
-
-            screen.blit(over_text, (screenWidth//2 - over_text.get_width()//2, 200))
-            screen.blit(best_score_text, (screenWidth//2 - best_score_text.get_width()//2, 300))
-            screen.blit(restart_text, (screenWidth//2 - restart_text.get_width()//2, 400))
+            screen.blit(font.render('Game Over', True, (255, 0, 0)), (screenWidth//2 - 100, 200))
+            screen.blit(font.render(f'Score: {high_score}', True, (255, 255, 0)), (screenWidth//2 - 100, 300))
+            screen.blit(font.render('[R]Reset', True, (255, 255, 255)), (screenWidth//2 - 100, 400))
             pygame.display.update()
 
     pygame.quit()
