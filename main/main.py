@@ -5,7 +5,7 @@ from player import Player
 from missle import MyMissile
 from enemy import Enemy
 from explosion import Explosion
-from enemy_bullet import EnemyBullet  # 加入敵人子彈
+from enemy_bullet import EnemyBullet
 from gobject import GameObject
 
 def main():
@@ -36,15 +36,16 @@ def main():
     cover_bg = pygame.transform.scale(cover_bg, (screenWidth, screenHigh))
 
     font = pygame.font.Font(font_path, 40)
+    hp_font = pygame.font.Font(font_path, 28)
+    game_over_font = pygame.font.Font(font_path, 80)  # ✅ Game Over 粗大字體
     title_font = pygame.font.SysFont("Microsoft JhengHei", 80, bold=True)
 
-    game_duration = 30
     fps = 120
     clock = pygame.time.Clock()
     movingScale = 1000 / fps
 
     player = Player(playground=playground, sensitivity=movingScale)
-    player._hp = 100  # 初始血量
+    player._hp = 100
     keyCountX = 0
     keyCountY = 0
     Missiles = []
@@ -54,7 +55,7 @@ def main():
 
     launchMissile = pygame.USEREVENT + 1
     createEnemy = pygame.USEREVENT + 2
-    pygame.time.set_timer(createEnemy, 1000)
+    pygame.time.set_timer(createEnemy, 600)
 
     score = 0
     high_score = 0
@@ -182,7 +183,6 @@ def main():
         elif game_state == PLAYING:
             screen.blit(background, (0, 0))
 
-            # 碰撞處理
             for e in Enemies:
                 if player._collided_(e):
                     e.available = False
@@ -199,7 +199,7 @@ def main():
                 m.collision_detect(Enemies)
 
             for e in Enemies:
-                if e.collided:
+                if e.collided and not player._collided_(e):
                     Boom.append(Explosion(e.center))
                     score += 10
                     explosion_sound.play()
@@ -228,18 +228,20 @@ def main():
             screen.blit(player.image, player.xy)
 
             # 血條
-            max_bar_width = 200
-            bar_x, bar_y = 10, 10
-            pygame.draw.rect(screen, (255, 0, 0), (bar_x, bar_y, max_bar_width, 25))
-            current_bar_width = max(0, player._hp / 100 * max_bar_width)
-            pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, current_bar_width, 25))
+            hp_label = hp_font.render("HP", True, (255, 255, 255))
+            screen.blit(hp_label, (20, 20))
 
-            seconds = (pygame.time.get_ticks() - start_ticks) / 1000
-            remaining_time = max(0, game_duration - int(seconds))
-            countdown = font.render(f'Time: {remaining_time}', True, (255, 255, 255))
+            max_bar_width = 200
+            bar_height = 12
+            bar_x, bar_y = 70, 35
+            pygame.draw.rect(screen, (0, 0, 0), (bar_x - 2, bar_y - 2, max_bar_width + 4, bar_height + 4))
+            pygame.draw.rect(screen, (0, 100, 0), (bar_x, bar_y, max_bar_width, bar_height))
+            current_bar_width = max(0, player._hp / 100 * max_bar_width)
+            pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, current_bar_width, bar_height))
+
             score_text = font.render(f'Score: {score}', True, (255, 255, 0))
-            screen.blit(countdown, (10, 45))
-            screen.blit(score_text, (10, 80))
+            score_rect = score_text.get_rect(topright=(screenWidth - 20, 10))
+            screen.blit(score_text, score_rect)
 
             pygame.display.update()
 
@@ -247,18 +249,22 @@ def main():
                 high_score = max(high_score, score)
                 game_state = GAME_OVER
 
-        elif game_state == PAUSED:
-            pause_text = font.render("遊戲暫停", True, (255, 255, 0))
-            continue_text = font.render("[P] 繼續遊戲", True, (255, 255, 255))
-            screen.blit(pause_text, (screenWidth // 2 - 80, screenHigh // 2 - 40))
-            screen.blit(continue_text, (screenWidth // 2 - 100, screenHigh // 2 + 20))
-            pygame.display.update()
-
         elif game_state == GAME_OVER:
             screen.fill((0, 0, 0))
-            screen.blit(font.render('Game Over', True, (255, 0, 0)), (screenWidth//2 - 100, 200))
-            screen.blit(font.render(f'Score: {high_score}', True, (255, 255, 0)), (screenWidth//2 - 100, 300))
-            screen.blit(font.render('[R]Reset', True, (255, 255, 255)), (screenWidth//2 - 100, 400))
+
+            # ✅ Game Over 加大置中
+            game_over_text = game_over_font.render('Game Over', True, (255, 0, 0))
+            game_over_rect = game_over_text.get_rect(center=(screenWidth // 2, 250))
+            screen.blit(game_over_text, game_over_rect)
+
+            score_text = font.render(f'Score: {high_score}', True, (255, 255, 0))
+            score_rect = score_text.get_rect(center=(screenWidth // 2, 400))
+            screen.blit(score_text, score_rect)
+
+            reset_text = font.render('[R]Reset', True, (255, 255, 255))
+            reset_rect = reset_text.get_rect(center=(screenWidth // 2, 500))
+            screen.blit(reset_text, reset_rect)
+
             pygame.display.update()
 
     pygame.quit()

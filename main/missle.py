@@ -13,7 +13,7 @@ class MyMissile(GameObject):
         # ✅ 自動置中子彈（傳入 xy = 飛機中心）
         missile_w = self._image.get_rect().w
         missile_h = self._image.get_rect().h
-        self._x = xy[0] - (missile_w // 2)
+        self._x = xy[0] - (missile_w // 2)-12
         self._y = xy[1]
 
         self._radius = missile_w / 2
