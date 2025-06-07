@@ -9,6 +9,7 @@ from enemy_bullet import EnemyBullet
 from gobject import GameObject
 
 def main():
+    # 資料夾路徑與資源路徑設定
     parent_path = Path(__file__).parents[1]
     image_path = parent_path / 'res'
     icon_path = image_path / 'airplaneicon.png'
@@ -19,6 +20,7 @@ def main():
     pygame.init()
     pygame.mixer.init()
 
+    # 畫面尺寸設定與爆炸音效載入
     screenHigh = 800
     screenWidth = 1200
     playground = [screenWidth, screenHigh]
@@ -29,12 +31,14 @@ def main():
     icon = pygame.image.load(icon_path)
     pygame.display.set_icon(icon)
 
+    # 背景與封面圖
     background = pygame.image.load(bg_path).convert()
     background = pygame.transform.scale(background, (screenWidth, screenHigh))
 
     cover_bg = pygame.image.load(cover_path).convert()
     cover_bg = pygame.transform.scale(cover_bg, (screenWidth, screenHigh))
 
+    # 字型設定
     font = pygame.font.Font(font_path, 40)
     title_font = pygame.font.SysFont("Microsoft JhengHei", 80, bold=True)
     hp_font = pygame.font.SysFont("Microsoft JhengHei", 24, bold=True)
@@ -43,6 +47,7 @@ def main():
     clock = pygame.time.Clock()
     movingScale = 1000 / fps
 
+    # 遊戲對象與狀態變數
     player = Player(playground=playground, sensitivity=movingScale)
     player._hp = 100
     keyCountX = 0
@@ -52,13 +57,15 @@ def main():
     Boom = []
     EnemyBullets = []
 
+    # 發射與產生敵人
     launchMissile = pygame.USEREVENT + 1
     createEnemy = pygame.USEREVENT + 2
-    pygame.time.set_timer(createEnemy, 1500)  # 放慢敵人出現速度
+    pygame.time.set_timer(createEnemy, 400)  # 敵人出現速度
 
     score = 0
     high_score = 0
 
+    # 遊戲狀態定義
     MENU = "menu"
     PLAYING = "playing"
     PAUSED = "paused"
@@ -75,6 +82,7 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
+            #  主選單
             if game_state == MENU:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
@@ -91,6 +99,7 @@ def main():
                     if event.key == pygame.K_ESCAPE:
                         running = False
 
+            # 遊戲進行中
             elif game_state == PLAYING:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_a:
@@ -140,6 +149,7 @@ def main():
                     if random.random() < 0.5:
                         EnemyBullets.append(e.fire())
 
+            # 遊戲暫停
             elif game_state == PAUSED:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_p:
@@ -147,6 +157,7 @@ def main():
                     if event.key == pygame.K_ESCAPE:
                         running = False
 
+            # 遊戲結束
             elif game_state == GAME_OVER:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_r:
@@ -154,19 +165,36 @@ def main():
                     if event.key == pygame.K_ESCAPE:
                         running = False
 
+        # 遊戲主邏輯與繪製
         if game_state == MENU:
             screen.blit(cover_bg, (0, 0))
             base_x = screenWidth // 2
             base_y = screenHigh // 2 - 100
-            title_text = title_font.render("射擊遊戲", True, (0, 0, 0))
-            screen.blit(title_text, title_text.get_rect(center=(base_x, base_y)))
-            screen.blit(font.render("[SPACE] Start", True, (255, 255, 255)), (base_x - 100, base_y + 80))
-            screen.blit(font.render("[ESC] Exit", True, (255, 255, 255)), (base_x - 100, base_y + 140))
-            pygame.display.update()
+            if game_state == MENU:
+                screen.blit(cover_bg, (0, 0))
+                base_x = screenWidth // 2
+                base_y = screenHigh // 2 - 100
+                title_text = "射擊遊戲"
+
+                # 白邊描邊效果
+                for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
+                    outline = title_font.render(title_text, True, (255, 255, 255))
+                    rect = outline.get_rect(center=(base_x + dx, base_y + dy))
+                    screen.blit(outline, rect)
+
+                # 黑色主標題文字
+                main_title = title_font.render(title_text, True, (0, 0, 0))
+                main_rect = main_title.get_rect(center=(base_x, base_y))
+                screen.blit(main_title, main_rect)
+
+                screen.blit(font.render("[SPACE] Start", True, (255, 255, 255)), (base_x - 100, base_y + 80))
+                screen.blit(font.render("[ESC] Exit", True, (255, 255, 255)), (base_x - 100, base_y + 140))
+                pygame.display.update()
 
         elif game_state == PLAYING:
             screen.blit(background, (0, 0))
 
+            # 玩家碰撞處理
             for e in Enemies:
                 if player._collided_(e):
                     e.available = False
@@ -190,6 +218,7 @@ def main():
                     score += 10
                     explosion1.play()
 
+            # 更新所有對象
             Missiles = [m for m in Missiles if m.available]
             for m in Missiles:
                 m.update()
@@ -213,7 +242,7 @@ def main():
             player.update()
             screen.blit(player.image, player.xy)
 
-            # 血條 + HP 標籤
+            # 血條 + 分數顯示
             screen.blit(hp_font.render("HP", True, (255, 255, 255)), (20, 30))
             bar_x, bar_y, bar_w, bar_h = 70, 35, 200, 12
             pygame.draw.rect(screen, (0, 0, 0), (bar_x - 2, bar_y - 2, bar_w + 4, bar_h + 4))

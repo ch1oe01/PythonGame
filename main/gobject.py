@@ -2,24 +2,30 @@ import math
 
 class GameObject:
     def __init__(self, playground=None):
+        # 初始化遊戲物件的基本屬性
         if playground is None:
-            self._playground = [1200, 900]
+            self._playground = [1200, 900]  # 預設場地大小
         else:
-            self._playground = playground
+            self._playground = playground  # 自定場地大小
 
+        # 物件活動的邊界範圍（left, right, top, bottom）
         self._objectBound = (0, self._playground[0], 0, self._playground[1])
+
+        # 座標與移動向量
         self._changeX = 0
         self._changeY = 0
         self._x = 0
         self._y = 0
-        self._moveScale = 1
-        self._hp = 1
-        self._image = None
-        self._available = True
-        self._center = None
-        self._radius = 0  # ✅ 設成 0，避免 None 計算錯誤
-        self._collided = False
+        self._moveScale = 1  # 速度倍率
 
+        self._hp = 1  # 預設生命值
+        self._image = None  # 圖像物件
+        self._available = True  # 是否有效（例如已爆炸就失效）
+        self._center = None  # 中心座標（用於碰撞）
+        self._radius = 0     # 半徑（碰撞範圍）
+        self._collided = False  # 是否發生碰撞
+
+    # 各種屬性的 getter/setter
     @property
     def xy(self):
         return self._x, self._y
@@ -80,6 +86,7 @@ class GameObject:
     def collided(self, value):
         self._collided = value
 
+    # 移動相關方法
     def to_the_left(self):
         self._changeX = -self._moveScale
 
@@ -99,9 +106,11 @@ class GameObject:
         self._changeY = 0
 
     def update(self):
+        # 移動更新位置
         self._x += self._changeX
         self._y += self._changeY
 
+        # 邊界限制判斷
         if self._x > self._objectBound[1]:
             self._x = self._objectBound[1]
         if self._x < self._objectBound[0]:
@@ -112,18 +121,25 @@ class GameObject:
         if self._y < self._objectBound[2]:
             self._y = self._objectBound[2]
 
-        # ✅ 更新中心座標
+        # 更新中心點座標（給碰撞判斷用）
         if self._image:
             self._center = (
                 self._x + self._image.get_rect().w / 2,
                 self._y + self._image.get_rect().h / 2
             )
 
+    # 碰撞偵測（圓形碰撞方式）
     def _collided_(self, it):
         if self._center is None or it.center is None:
-            return False  # ✅ 防止 NoneType 觸發錯誤
+            return False  # 防止 None 引發錯誤
         if self._radius is None or it.radius is None:
             return False
 
-        distance = math.hypot(self._center[0] - it.center[0], self._center[1] - it.center[1])
+        # 計算兩中心距離
+        distance = math.hypot(
+            self._center[0] - it.center[0],
+            self._center[1] - it.center[1]
+        )
+
+        # 判斷是否碰撞（兩圓相交）
         return distance < (self._radius + it.radius)
