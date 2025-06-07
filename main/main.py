@@ -22,7 +22,7 @@ def main():
     screenHigh = 800
     screenWidth = 1200
     playground = [screenWidth, screenHigh]
-    explosion_sound = pygame.mixer.Sound(str(image_path / 'explosion.mp3'))
+    explosion1 = pygame.mixer.Sound(str(image_path / 'explosion1.mp3'))
 
     screen = pygame.display.set_mode((screenWidth, screenHigh))
     pygame.display.set_caption("射擊遊戲")
@@ -36,9 +36,8 @@ def main():
     cover_bg = pygame.transform.scale(cover_bg, (screenWidth, screenHigh))
 
     font = pygame.font.Font(font_path, 40)
-    hp_font = pygame.font.Font(font_path, 28)
-    game_over_font = pygame.font.Font(font_path, 80)  # ✅ Game Over 粗大字體
     title_font = pygame.font.SysFont("Microsoft JhengHei", 80, bold=True)
+    hp_font = pygame.font.SysFont("Microsoft JhengHei", 24, bold=True)
 
     fps = 120
     clock = pygame.time.Clock()
@@ -55,11 +54,10 @@ def main():
 
     launchMissile = pygame.USEREVENT + 1
     createEnemy = pygame.USEREVENT + 2
-    pygame.time.set_timer(createEnemy, 600)
+    pygame.time.set_timer(createEnemy, 1500)  # 放慢敵人出現速度
 
     score = 0
     high_score = 0
-    start_ticks = None
 
     MENU = "menu"
     PLAYING = "playing"
@@ -81,7 +79,6 @@ def main():
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
                         game_state = PLAYING
-                        start_ticks = pygame.time.get_ticks()
                         Missiles.clear()
                         Enemies.clear()
                         Boom.clear()
@@ -111,34 +108,30 @@ def main():
                     if event.key == pygame.K_p:
                         game_state = PAUSED
                     if event.key == pygame.K_SPACE:
-                        m_x = player._x + 40
+                        m_x = player._x + 20  # 子彈向左移
                         m_y = player._y
                         Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
-                        m_x = player._x + 100
+                        m_x = player._x + 80
                         Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
                         pygame.time.set_timer(launchMissile, 400)
 
                 if event.type == pygame.KEYUP:
                     if event.key in [pygame.K_a, pygame.K_d]:
-                        if keyCountX == 1:
-                            keyCountX = 0
+                        keyCountX = max(0, keyCountX - 1)
+                        if keyCountX == 0:
                             player.stop_x()
-                        else:
-                            keyCountX -= 1
                     if event.key in [pygame.K_s, pygame.K_w]:
-                        if keyCountY == 1:
-                            keyCountY = 0
+                        keyCountY = max(0, keyCountY - 1)
+                        if keyCountY == 0:
                             player.stop_y()
-                        else:
-                            keyCountY -= 1
                     if event.key == pygame.K_SPACE:
                         pygame.time.set_timer(launchMissile, 0)
 
                 if event.type == launchMissile:
-                    m_x = player._x + 40
+                    m_x = player._x + 20
                     m_y = player._y
                     Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
-                    m_x = player._x + 100
+                    m_x = player._x + 80
                     Missiles.append(MyMissile(xy=(m_x, m_y), playground=playground, sensitivity=movingScale))
 
                 if event.type == createEnemy:
@@ -163,19 +156,10 @@ def main():
 
         if game_state == MENU:
             screen.blit(cover_bg, (0, 0))
-            title_text = "射擊遊戲"
             base_x = screenWidth // 2
             base_y = screenHigh // 2 - 100
-
-            for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
-                outline = title_font.render(title_text, True, (255, 255, 255))
-                rect = outline.get_rect(center=(base_x + dx, base_y + dy))
-                screen.blit(outline, rect)
-
-            main_title = title_font.render(title_text, True, (0, 0, 0))
-            main_rect = main_title.get_rect(center=(base_x, base_y))
-            screen.blit(main_title, main_rect)
-
+            title_text = title_font.render("射擊遊戲", True, (0, 0, 0))
+            screen.blit(title_text, title_text.get_rect(center=(base_x, base_y)))
             screen.blit(font.render("[SPACE] Start", True, (255, 255, 255)), (base_x - 100, base_y + 80))
             screen.blit(font.render("[ESC] Exit", True, (255, 255, 255)), (base_x - 100, base_y + 140))
             pygame.display.update()
@@ -188,21 +172,23 @@ def main():
                     e.available = False
                     Boom.append(Explosion(e.center))
                     player._hp -= 10
+                    explosion1.play()
 
             for b in EnemyBullets:
                 if player._collided_(b):
                     b.available = False
                     player._hp -= 10
+                    explosion1.play()
 
             player.collision_detect(Enemies)
             for m in Missiles:
                 m.collision_detect(Enemies)
 
             for e in Enemies:
-                if e.collided and not player._collided_(e):
+                if e.collided:
                     Boom.append(Explosion(e.center))
                     score += 10
-                    explosion_sound.play()
+                    explosion1.play()
 
             Missiles = [m for m in Missiles if m.available]
             for m in Missiles:
@@ -227,17 +213,11 @@ def main():
             player.update()
             screen.blit(player.image, player.xy)
 
-            # 血條
-            hp_label = hp_font.render("HP", True, (255, 255, 255))
-            screen.blit(hp_label, (20, 20))
-
-            max_bar_width = 200
-            bar_height = 12
-            bar_x, bar_y = 70, 35
-            pygame.draw.rect(screen, (0, 0, 0), (bar_x - 2, bar_y - 2, max_bar_width + 4, bar_height + 4))
-            pygame.draw.rect(screen, (0, 100, 0), (bar_x, bar_y, max_bar_width, bar_height))
-            current_bar_width = max(0, player._hp / 100 * max_bar_width)
-            pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, current_bar_width, bar_height))
+            # 血條 + HP 標籤
+            screen.blit(hp_font.render("HP", True, (255, 255, 255)), (20, 30))
+            bar_x, bar_y, bar_w, bar_h = 70, 35, 200, 12
+            pygame.draw.rect(screen, (0, 0, 0), (bar_x - 2, bar_y - 2, bar_w + 4, bar_h + 4))
+            pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, max(0, player._hp / 100 * bar_w), bar_h))
 
             score_text = font.render(f'Score: {score}', True, (255, 255, 0))
             score_rect = score_text.get_rect(topright=(screenWidth - 20, 10))
@@ -251,20 +231,9 @@ def main():
 
         elif game_state == GAME_OVER:
             screen.fill((0, 0, 0))
-
-            # ✅ Game Over 加大置中
-            game_over_text = game_over_font.render('Game Over', True, (255, 0, 0))
-            game_over_rect = game_over_text.get_rect(center=(screenWidth // 2, 250))
-            screen.blit(game_over_text, game_over_rect)
-
-            score_text = font.render(f'Score: {high_score}', True, (255, 255, 0))
-            score_rect = score_text.get_rect(center=(screenWidth // 2, 400))
-            screen.blit(score_text, score_rect)
-
-            reset_text = font.render('[R]Reset', True, (255, 255, 255))
-            reset_rect = reset_text.get_rect(center=(screenWidth // 2, 500))
-            screen.blit(reset_text, reset_rect)
-
+            screen.blit(title_font.render('Game Over', True, (255, 0, 0)), (screenWidth//2 - 200, 250))
+            screen.blit(font.render(f'Score: {high_score}', True, (255, 255, 0)), (screenWidth//2 - 100, 400))
+            screen.blit(font.render('[R] Reset', True, (255, 255, 255)), (screenWidth//2 - 100, 480))
             pygame.display.update()
 
     pygame.quit()
